@@ -10,6 +10,9 @@ AM_INIT_AUTOMAKE([subdir-objects])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
+# ./configure --host=x86_64-w64-mingw32
+CFLAGS="-O3"
+
 AC_PROG_CC
 AM_PROG_CC_C_O
 
