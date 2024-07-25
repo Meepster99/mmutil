@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include "errors.h"
 #include "defs.h"
@@ -92,7 +93,7 @@ typedef struct tSampleInfo {
 	u32 samp_len;
 	u32 samp_llen;
 	u8 sformat;
-	unsigned hash;
+	uint64_t hash;
 } SampleInfo;
 
 unsigned sampleInfoLen = 0;
@@ -136,7 +137,7 @@ u16 MSL_AddSampleC( Sample* samp )
 	tempSampleInfo.samp_llen = samp->loop_type ? samp->loop_end-samp->loop_start : 0xFFFFFFFF;
 	tempSampleInfo.sformat = target_system == SYSTEM_NDS ? sample_dsformat(samp) : SAMP_FORMAT_U8;
 	
-	unsigned tempHash = 0;
+	uint64_t tempHash = 0;
 	if( samp->format & SAMPF_16BIT ) {
 		for(st=0; st<samp->sample_length; st++) {
 			tempHash = (tempHash * 31) + ((u16*)samp->data)[st];
