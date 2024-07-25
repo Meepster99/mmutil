@@ -137,14 +137,14 @@ u16 MSL_AddSampleC( Sample* samp )
 	tempSampleInfo.samp_llen = samp->loop_type ? samp->loop_end-samp->loop_start : 0xFFFFFFFF;
 	tempSampleInfo.sformat = target_system == SYSTEM_NDS ? sample_dsformat(samp) : SAMP_FORMAT_U8;
 	
-	uint64_t tempHash = 0;
+	uint64_t  tempHash = 5381;
 	if( samp->format & SAMPF_16BIT ) {
 		for(st=0; st<samp->sample_length; st++) {
-			tempHash = (tempHash * 31) + ((u16*)samp->data)[st];
+			tempHash = ((tempHash << 5) + tempHash) + ((u16*)samp->data)[st];
 		}
 	} else {
 		for(st=0; st<samp->sample_length; st++) {
-			tempHash = (tempHash * 31) + ((u8*)samp->data)[st];
+			tempHash = ((tempHash << 5) + tempHash) + ((u8*)samp->data)[st];
 		}
 	}
 	tempSampleInfo.hash = tempHash;
