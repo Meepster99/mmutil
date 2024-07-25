@@ -88,8 +88,30 @@ u16 MSL_AddSample( Sample* samp )
 	return MSL_NSAMPS-1;
 }
 
+typedef struct tSampleInfo {
+	u32 samp_len;
+	u32 samp_llen;
+	u8 sformat;
+	unsigned hash;
+} SampleInfo;
+
+unsigned sampleInfoLen = 0;
+unsigned sampleInfoMax = 0;
+SampleInfo* sampleInfoList = NULL;
+
 u16 MSL_AddSampleC( Sample* samp )
 {
+
+	if(sampleInfoList == NULL) {
+		sampleInfoList = malloc(64 * sizeof(SampleInfo));
+		sampleInfoMax = 64;
+	}
+
+	if(sampleInfoLen == sampleInfoMax) {
+		sampleInfoMax *= 2;
+		sampleInfoList = realloc(sampleInfoList, sampleInfoMax * sizeof(SampleInfo));
+	}
+
 	u32 st;
 	u32 samp_len;
 	u32 samp_llen;
@@ -105,70 +127,38 @@ u16 MSL_AddSampleC( Sample* samp )
 	{
 		return MSL_AddSample( samp );
 	}
-	F_SAMP = fopen( TMP_SAMP, "rb" );
-	fseek( F_SAMP, 0, SEEK_SET );
-	samp_id = 0;
-	while( ftell( F_SAMP ) < fsize )
-	{
-		h_filesize = read32f( F_SAMP );
-		read32f( F_SAMP );
-		samp_len = read32f( F_SAMP );
-		samp_llen = read32f( F_SAMP );
-		sformat = read8f( F_SAMP );
-		skip8f( 3, F_SAMP );
-		if( target_system == SYSTEM_NDS )
-		{
-			target_sformat = sample_dsformat( samp );
-			skip8f(4,F_SAMP);
-		}
-		else
-		{
-			target_sformat = SAMP_FORMAT_U8;
-		}
+	
+	// new plan
+	// hash all previous samples, store in a set(more realistically array, linear search)
 
-		samp_match=true;
-		if( samp->sample_length == samp_len && ( samp->loop_type ? samp->loop_end-samp->loop_start : 0xFFFFFFFF ) == samp_llen && sformat == target_sformat )
-		{
-			// verify sample data
-			if( samp->format & SAMPF_16BIT )
-			{
-				for( st=0; st<samp_len; st++ )
-				{
-					if( read16f( F_SAMP ) != ((u16*)samp->data)[st] )
-					{
-						samp_match = false;
-						break;
-					}
-				}
-			}
-			else
-			{
-				for( st=0; st<samp_len; st++ )
-				{
-					if( read8f( F_SAMP ) != ((u8*)samp->data)[st] )
-					{
-						samp_match = false;
-						break;
-					}
-				}
-			}
-			if( samp_match )
-			{
-				fclose( F_SAMP );
-				return samp_id;
-			}
-			else
-			{
-				skip8f( (h_filesize-SAMPLE_HEADER_SIZE ) - (st+1)  , F_SAMP );		// +4 to skip padding
-			}
+	SampleInfo tempSampleInfo;
+	tempSampleInfo.samp_len = samp->sample_length;
+	tempSampleInfo.samp_llen = samp->loop_type ? samp->loop_end-samp->loop_start : 0xFFFFFFFF;
+	tempSampleInfo.sformat = target_system == SYSTEM_NDS ? sample_dsformat(samp) : SAMP_FORMAT_U8;
+	
+	unsigned tempHash = 0;
+	if( samp->format & SAMPF_16BIT ) {
+		for(st=0; st<samp->sample_length; st++) {
+			tempHash = (tempHash * 31) + ((u16*)samp->data)[st];
 		}
-		else
-		{
-			skip8f( h_filesize- SAMPLE_HEADER_SIZE , F_SAMP ); // +4 to skip padding
+	} else {
+		for(st=0; st<samp->sample_length; st++) {
+			tempHash = (tempHash * 31) + ((u8*)samp->data)[st];
 		}
-		samp_id++;
 	}
-	fclose( F_SAMP );
+	tempSampleInfo.hash = tempHash;
+
+	for(unsigned i=0; i<sampleInfoLen; i++) {
+		if(tempSampleInfo.samp_len == sampleInfoList[i].samp_len &&
+		tempSampleInfo.samp_llen == sampleInfoList[i].samp_llen &&
+		tempSampleInfo.sformat == sampleInfoList[i].sformat &&
+		tempSampleInfo.hash == sampleInfoList[i].hash) {
+			return i;
+		}
+	}
+	
+	sampleInfoList[sampleInfoLen++] = tempSampleInfo;
+	
 	return MSL_AddSample( samp );
 }
 
