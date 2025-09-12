@@ -137,17 +137,26 @@ u16 MSL_AddSampleC( Sample* samp )
 	tempSampleInfo.samp_llen = samp->loop_type ? samp->loop_end-samp->loop_start : 0xFFFFFFFF;
 	tempSampleInfo.sformat = target_system == SYSTEM_NDS ? sample_dsformat(samp) : SAMP_FORMAT_U8;
 	
-	uint64_t  tempHash = 5381;
+	// issue. this hash func is having errors? possibly? 
+	// tail's song is getting messed up, and im not sure what is causing it.
+	// is sample_length.. is it the number of samples or the size?
+	
+	
+	//uint64_t tempHash = 5381;
+	uint64_t tempHash = 15360000493;
 	if( samp->format & SAMPF_16BIT ) {
 		for(st=0; st<samp->sample_length; st++) {
-			tempHash = ((tempHash << 5) + tempHash) + ((u16*)samp->data)[st];
+			//tempHash = ((tempHash << 5) + tempHash) + ((u16*)samp->data)[st];
+			tempHash = ((tempHash << 7) + tempHash) + ((u16*)samp->data)[st];
 		}
 	} else {
 		for(st=0; st<samp->sample_length; st++) {
-			tempHash = ((tempHash << 5) + tempHash) + ((u8*)samp->data)[st];
+			//tempHash = ((tempHash << 5) + tempHash) + ((u8*)samp->data)[st];
+			tempHash = ((tempHash << 7) + tempHash) + ((u8*)samp->data)[st];
 		}
 	}
 	tempSampleInfo.hash = tempHash;
+
 
 	for(unsigned i=0; i<sampleInfoLen; i++) {
 		if(tempSampleInfo.samp_len == sampleInfoList[i].samp_len &&
